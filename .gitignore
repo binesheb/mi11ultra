@@ -1,0 +1,16 @@
+# Visual Studio user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# IDE directories
+.vs/
+.vscode/
+
+# JetBrains Rider
+.idea/
