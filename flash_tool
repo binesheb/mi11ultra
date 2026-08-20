@@ -14,83 +14,111 @@ namespace Mi11UltraFlashingApp
 
         private void button1_Click(object sender, EventArgs e)
         {
-            // Prompt the user to select the ROM file.
-            OpenFileDialog openFileDialog1 = new OpenFileDialog
-            {
-                Title = "Select ROM file",
-                Filter = "ROM files (*.zip)|*.zip"
-            };
-            DialogResult result = openFileDialog1.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                string romFile = openFileDialog1.FileName;
+            // A recovery ROM ZIP must not be passed directly to `fastboot flash system`.
+            // Keep this prototype limited to device checks and an explicitly selected boot image.
+            DialogResult result = MessageBox.Show(
+                "This prototype will only check the connected device and can optionally flash an explicitly selected boot.img. " +
+                "ROM ZIP flashing and bootloader unlocking are intentionally disabled until package and device validation are implemented.",
+                "Mi 11 Ultra Flash Tool - Safety Check",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Warning);
 
-                // Prompt the user to select the boot.img file, if desired.
-                string bootImg = "";
-                DialogResult bootImgResult = MessageBox.Show("Do you want to flash a custom boot.img file?", "Flash custom boot.img?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (bootImgResult == DialogResult.Yes)
-                {
-                    OpenFileDialog openFileDialog2 = new OpenFileDialog
-                    {
-                        Title = "Select boot.img file",
-                        Filter = "boot.img files (*.img)|*.img"
-                    };
-                    DialogResult bootImgDialogResult = openFileDialog2.ShowDialog();
-                    if (bootImgDialogResult == DialogResult.OK)
-                    {
-                        bootImg = openFileDialog2.FileName;
-                    }
-                }
+            if (result != DialogResult.OK)
+            {
+                return;
+            }
 
-                // Execute the adb commands to flash the ROM and/or boot.img.
-                ProcessStartInfo startInfo = new ProcessStartInfo
+            string bootImg = "";
+            DialogResult bootImgResult = MessageBox.Show(
+                "Do you want to select a boot.img file for flashing?",
+                "Flash custom boot.img?",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (bootImgResult == DialogResult.Yes)
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog
                 {
-                    FileName = "cmd.exe",
-                    RedirectStandardInput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
+                    Title = "Select boot.img file",
+                    Filter = "boot.img files (*.img)|*.img"
                 };
-                Process cmdProcess = new Process();
-                cmdProcess.StartInfo = startInfo;
-                cmdProcess.Start();
-                cmdProcess.StandardInput.WriteLine("adb devices");
-                cmdProcess.StandardInput.WriteLine("adb reboot bootloader");
-                cmdProcess.StandardInput.WriteLine("fastboot devices");
-                cmdProcess.StandardInput.WriteLine("fastboot flashing unlock");
-                if (!String.IsNullOrEmpty(bootImg))
-                {
-                    cmdProcess.StandardInput.WriteLine("fastboot flash boot " + bootImg);
-                }
-                cmdProcess.StandardInput.WriteLine("fastboot flash system " + romFile);
-                cmdProcess.StandardInput.WriteLine("fastboot reboot");
 
-                // Show the progress bar and status messages.
-                progressBar1.Visible = true;
-                statusStrip1.Visible = true;
-                toolStripStatusLabel1.Text = "Flashing the ROM...";
-                while (!cmdProcess.StandardOutput.EndOfStream)
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    string output = cmdProcess.StandardOutput.ReadLine();
-                    if (output.Contains("Flashing successful"))
-                    {
-                        toolStripStatusLabel1.Text = "Flashing successful!";
-                        break;
-                    }
-                    else if (output.Contains("Flashing failed"))
-                    {
-                        toolStripStatusLabel1.Text = "Flashing failed!";
-                        break;
-                    }
-                    else if (output.Contains("FAILED"))
-                    {
-                        toolStripStatusLabel1.Text = "Error: " + output;
-                        break;
-                    }
-                    else if (output.Contains("INFO"))
-                    {
-                        progressBar1.Value += 5;
-                    }
+                    bootImg = openFileDialog.FileName;
                 }
+                else
+                {
+                    return;
+                }
+            }
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            Process cmdProcess = new Process();
+            cmdProcess.StartInfo = startInfo;
+            cmdProcess.Start();
+
+            cmdProcess.StandardInput.WriteLine("adb devices");
+            cmdProcess.StandardInput.WriteLine("adb reboot bootloader");
+            cmdProcess.StandardInput.WriteLine("fastboot devices");
+
+            if (!String.IsNullOrEmpty(bootImg))
+            {
+                DialogResult confirm = MessageBox.Show(
+                    "Flash the selected boot.img to the currently connected device?\n\n" + bootImg,
+                    "Confirm boot image flash",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    cmdProcess.StandardInput.WriteLine("fastboot flash boot \"" + bootImg + "\"");
+                }
+            }
+
+            cmdProcess.StandardInput.WriteLine("fastboot reboot");
+            cmdProcess.StandardInput.Close();
+
+            progressBar1.Visible = true;
+            statusStrip1.Visible = true;
+            toolStripStatusLabel1.Text = "Checking device...";
+
+            while (!cmdProcess.StandardOutput.EndOfStream)
+            {
+                string output = cmdProcess.StandardOutput.ReadLine();
+                if (String.IsNullOrEmpty(output))
+                {
+                    continue;
+                }
+
+                if (output.IndexOf("FAILED", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    toolStripStatusLabel1.Text = "Error: " + output;
+                    break;
+                }
+
+                if (output.IndexOf("finished", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    output.IndexOf("OKAY", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    toolStripStatusLabel1.Text = "Command completed successfully.";
+                }
+            }
+
+            string errorOutput = cmdProcess.StandardError.ReadToEnd();
+            cmdProcess.WaitForExit();
+
+            if (!String.IsNullOrWhiteSpace(errorOutput))
+            {
+                toolStripStatusLabel1.Text = "Error: " + errorOutput.Trim();
             }
         }
     }
