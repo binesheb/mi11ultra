@@ -1,0 +1,40 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "flash_tool"
+      - ".github/workflows/validate.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "flash_tool"
+      - ".github/workflows/validate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate C# source syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path("flash_tool").read_text(encoding="utf-8")
+          required = [
+              "namespace Mi11UltraFlashingApp",
+              "public partial class Form1",
+              "fastboot flash boot",
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f"Missing expected source markers: {missing}")
+          if source.count("{") != source.count("}"):
+              raise SystemExit("Unbalanced C# braces in flash_tool")
+          print("flash_tool basic source validation passed")
+          PY
