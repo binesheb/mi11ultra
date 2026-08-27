@@ -22,7 +22,7 @@ The project has both a planned application update channel and a documented manua
 
 ## Versioning
 
-Current source version: **0.1.0**. The project follows semantic versioning for future releases.
+Current source version: **0.1.1**. The project follows semantic versioning for future releases.
 
 ## Safety
 
