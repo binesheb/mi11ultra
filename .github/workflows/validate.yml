@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate C# source syntax
+      - name: Validate C# source safety invariants
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -36,5 +36,14 @@ jobs:
               raise SystemExit(f"Missing expected source markers: {missing}")
           if source.count("{") != source.count("}"):
               raise SystemExit("Unbalanced C# braces in flash_tool")
-          print("flash_tool basic source validation passed")
+
+          # Safety regressions must fail CI rather than silently reintroducing
+          # unsupported ROM/system flashing into this early prototype.
+          if "fastboot flash system" in source:
+              raise SystemExit("Unsupported system partition flashing detected")
+          if 'fastboot flash boot \\\"' not in source:
+              raise SystemExit("Boot flashing command must keep the selected path quoted")
+          if 'if (confirm == DialogResult.Yes)' not in source:
+              raise SystemExit("Boot flashing must remain behind explicit confirmation")
+          print("flash_tool safety validation passed")
           PY
