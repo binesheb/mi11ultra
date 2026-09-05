@@ -41,7 +41,7 @@ jobs:
           # unsupported ROM/system flashing into this early prototype.
           if "fastboot flash system" in source:
               raise SystemExit("Unsupported system partition flashing detected")
-          if 'fastboot flash boot \\\"' not in source:
+          if 'fastboot flash boot "' not in source:
               raise SystemExit("Boot flashing command must keep the selected path quoted")
           if 'if (confirm == DialogResult.Yes)' not in source:
               raise SystemExit("Boot flashing must remain behind explicit confirmation")
