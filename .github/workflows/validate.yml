@@ -28,6 +28,7 @@ jobs:
       - name: Validate C# source safety invariants
         run: |
           python - <<'PY'
+          import re
           from pathlib import Path
 
           source = Path("flash_tool").read_text(encoding="utf-8")
@@ -42,13 +43,14 @@ jobs:
           if source.count("{") != source.count("}"):
               raise SystemExit("Unbalanced C# braces in flash_tool")
 
-          # Safety regressions must fail CI rather than silently reintroducing
-          # unsupported ROM/system flashing into this early prototype.
-          if "fastboot flash system" in source:
+          # Ignore C# line comments when checking active safety-sensitive commands.
+          # The source intentionally documents disabled commands in comments.
+          active_source = re.sub(r"//.*$", "", source, flags=re.MULTILINE)
+          if "fastboot flash system" in active_source:
               raise SystemExit("Unsupported system partition flashing detected")
-          if 'fastboot flash boot "' not in source:
+          if 'fastboot flash boot "' not in active_source:
               raise SystemExit("Boot flashing command must keep the selected path quoted")
-          if 'if (confirm == DialogResult.Yes)' not in source:
+          if 'if (confirm == DialogResult.Yes)' not in active_source:
               raise SystemExit("Boot flashing must remain behind explicit confirmation")
           print("flash_tool safety validation passed")
           PY
