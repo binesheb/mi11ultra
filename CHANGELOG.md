@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 The project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Safety
+- Added an explicit confirmation before issuing `fastboot reboot` so the prototype does not restart a device without operator approval.
+
 ## [0.1.1] - 2026-08-20
 
 ### Fixed
