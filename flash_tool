@@ -85,7 +85,17 @@ namespace Mi11UltraFlashingApp
                 }
             }
 
-            cmdProcess.StandardInput.WriteLine("fastboot reboot");
+            DialogResult rebootConfirm = MessageBox.Show(
+                "Reboot the connected device now?",
+                "Confirm device reboot",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (rebootConfirm == DialogResult.Yes)
+            {
+                cmdProcess.StandardInput.WriteLine("fastboot reboot");
+            }
+
             cmdProcess.StandardInput.Close();
 
             progressBar1.Visible = true;
