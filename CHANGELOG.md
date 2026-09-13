@@ -8,6 +8,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ### Safety
 - Added an explicit confirmation before issuing `fastboot reboot` so the prototype does not restart a device without operator approval.
+- Require `adb get-state` to succeed before the prototype issues `adb reboot bootloader`, preventing reboot attempts when no ready/authorized ADB device is available.
 
 ## [0.1.1] - 2026-08-20
 

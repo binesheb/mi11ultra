@@ -67,6 +67,10 @@ namespace Mi11UltraFlashingApp
             cmdProcess.StartInfo = startInfo;
             cmdProcess.Start();
 
+            // Do not reboot unless ADB reports a ready device. This prevents the
+            // prototype from issuing a reboot command when no device is connected
+            // or when the device is still unauthorized.
+            cmdProcess.StandardInput.WriteLine("adb get-state >nul 2>&1 || exit /b 1");
             cmdProcess.StandardInput.WriteLine("adb devices");
             cmdProcess.StandardInput.WriteLine("adb reboot bootloader");
             cmdProcess.StandardInput.WriteLine("fastboot devices");
