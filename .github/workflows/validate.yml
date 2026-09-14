@@ -52,5 +52,17 @@ jobs:
               raise SystemExit("Boot flashing command must keep the selected path quoted")
           if 'if (confirm == DialogResult.Yes)' not in active_source:
               raise SystemExit("Boot flashing must remain behind explicit confirmation")
+
+          adb_guard = 'cmdProcess.StandardInput.WriteLine("adb get-state >nul 2>&1 || exit /b 1");'
+          adb_reboot = 'cmdProcess.StandardInput.WriteLine("adb reboot bootloader");'
+          fastboot_devices = 'cmdProcess.StandardInput.WriteLine("fastboot devices");'
+          boot_flash = 'cmdProcess.StandardInput.WriteLine("fastboot flash boot \\"" + bootImg + "\\"");'
+          if adb_guard not in source or adb_reboot not in source:
+              raise SystemExit("ADB reboot safety guard is missing")
+          if source.index(adb_guard) > source.index(adb_reboot):
+              raise SystemExit("ADB readiness guard must precede bootloader reboot")
+          if boot_flash in source and source.index(fastboot_devices) > source.index(boot_flash):
+              raise SystemExit("Fastboot device enumeration must precede boot flashing")
+
           print("flash_tool safety validation passed")
           PY
